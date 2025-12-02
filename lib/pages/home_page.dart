@@ -94,6 +94,7 @@ class HomePage extends StatelessWidget {
                           _buildIcon(Icons.store, '应用中心'),
                           _buildIcon(Icons.apps, '更多'),
                         ],
+
                       ),
                       const SizedBox(height: 20),
                       Container(

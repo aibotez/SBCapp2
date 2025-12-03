@@ -42,7 +42,7 @@ class _MyHomePageState extends State<MyHomePage> {
     //图标列表
     const BottomNavigationBarItem(
       backgroundColor: Colors.white70,
-      icon: Icon(Icons.home),
+      icon: Icon(Icons.home_outlined),
       label: '首页'),
     const BottomNavigationBarItem(
       backgroundColor: Colors.white70,

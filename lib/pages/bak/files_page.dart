@@ -21,7 +21,8 @@ class _FileManagerPageState extends State<FilesPage> {
     FileItem(name: "doc_1761822872509.pdf", date: "2025/11/29 20:49", size: "239.38 KB", fileType: FileType.pdf),
     FileItem(name: "Screenshot_20251129_204901_com.trim.app.jpg", date: "2025/11/29 20:49", size: "315.74 KB", fileType: FileType.image),
     FileItem(name: "Video_Clip_2025.mp4", date: "2025/11/28 10:00", size: "12.5 MB", fileType: FileType.video),
-    FileItem(name: "Work_Report_Q4.docx", date: "2025/11/27 09:30", size: "450 KB", fileType: FileType.other),
+    FileItem(name: "Work.docx", date: "2025/11/27 09:30", size: "450 KB", fileType: FileType.other),
+    FileItem(name: "A_very_long_file_name_that_spans_multiple_lines.txt", date: "2025/11/26 09:00", size: "10 KB", fileType: FileType.other),
   ];
 
   // --- Logic Methods ---
@@ -210,7 +211,8 @@ class _FileManagerPageState extends State<FilesPage> {
                           crossAxisCount: 3,
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
-                          childAspectRatio: 0.7,
+                          // 恢复到 0.70，因为文件名现在只占一行。
+                          childAspectRatio: 0.70,
                         ),
                         itemBuilder: (context, index) {
                           return _buildGridItem(index);
@@ -351,7 +353,7 @@ class _FileManagerPageState extends State<FilesPage> {
     );
   }
 
-  // --- Grid View Item (关键调整) ---
+  // --- Grid View Item ---
   Widget _buildGridItem(int index) {
     final item = _files[index];
     final isSelected = _selectedIndices.contains(index);
@@ -392,29 +394,21 @@ class _FileManagerPageState extends State<FilesPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Icon/Thumbnail Area (使用 Stack 进行精确定位)
-            Expanded(
+            // 1. Icon/Thumbnail Area (固定高度的 Stack)
+            SizedBox(
+              // 固定 Stack 的总高度
+              height: 80,
+              width: double.infinity,
               child: Stack(
-                // 关键调整 1: 将主要图标向下对齐，为顶部的“更多”按钮留出空间。
                 alignment: Alignment.bottomCenter,
                 children: [
                   // 主要文件图标容器
-                  SizedBox(
-                    width: double.infinity,
-                    // 保持一个合理的固定高度，确保有足够的垂直空间
-                    height: 72,
-                    // 关键调整 2: Icon组件现在位于SizedBox的底部中央，而不是Center。
-                    child: Align(
-                      alignment: Alignment.bottomCenter,
-                      child: _getFileIcon(item, isGrid: true),
-                    ),
-                  ),
+                  _getFileIcon(item, isGrid: true),
 
                   // Top-right More/Selection button
-                  // 关键调整 3: 进一步调整定位，确保它位于SizedBox的边界内，且在顶部。
                   Positioned(
-                    top: 0, // 贴近顶部
-                    right: 0, // 贴近右侧
+                    top: 0,
+                    right: 0,
                     child: _buildTrailingWidget(isSelected, index, isGrid: true),
                   ),
                 ],
@@ -424,7 +418,8 @@ class _FileManagerPageState extends State<FilesPage> {
             // 2. File Name
             Text(
               item.name,
-              maxLines: 2,
+              // 关键修改：将最大行数限制为 1，确保文件名不会溢出
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.2),
             ),
@@ -473,7 +468,6 @@ class _FileManagerPageState extends State<FilesPage> {
       );
     } else {
       // Non-Selection Mode: Show More action icon
-      // 关键调整 4: 确保在非选择模式下，“更多”按钮的点击区域不会太大。
       return SizedBox(
         width: 32, // 限制宽度
         height: 32, // 限制高度
@@ -493,44 +487,49 @@ class _FileManagerPageState extends State<FilesPage> {
 
   // Return icon based on file type
   Widget _getFileIcon(FileItem item, {required bool isGrid}) {
+    // 保持图标/容器尺寸一致
     double size = isGrid ? 36 : 32;
     double containerSize = isGrid ? 50 : 48;
-    double folderSize = isGrid ? 48 : 48;
 
-    if (item.isFolder) {
-      // Folder icon
-      return Icon(Icons.folder, size: folderSize, color: const Color(0xFF42A5F5));
-    }
 
     // File type icon
     IconData iconData;
     Color color;
     Color bgColor;
 
-    switch (item.fileType) {
-      case FileType.pdf:
-        iconData = Icons.picture_as_pdf;
-        color = Colors.redAccent;
-        bgColor = Colors.red.shade50;
-        break;
-      case FileType.image:
-        iconData = Icons.image;
-        color = Colors.purpleAccent;
-        bgColor = Colors.purple.shade50;
-        break;
-      case FileType.video:
-        iconData = Icons.movie;
-        color = Colors.green;
-        bgColor = Colors.green.shade50;
-        break;
-      default:
-        iconData = Icons.insert_drive_file;
-        color = Colors.grey;
-        bgColor = Colors.grey.shade100;
-        break;
+    if (item.isFolder) {
+      // Folder icon
+      iconData = Icons.folder;
+      color = Colors.blue;
+      bgColor = Colors.blue.shade50;
+    }
+    else{
+      switch (item.fileType) {
+        case FileType.pdf:
+          iconData = Icons.picture_as_pdf;
+          color = Colors.redAccent;
+          bgColor = Colors.red.shade50;
+          break;
+        case FileType.image:
+          iconData = Icons.image;
+          color = Colors.purpleAccent;
+          bgColor = Colors.purple.shade50;
+          break;
+        case FileType.video:
+          iconData = Icons.movie;
+          color = Colors.green;
+          bgColor = Colors.green.shade50;
+          break;
+        case FileType.other:
+        default: // Fallback for safety
+          iconData = Icons.insert_drive_file;
+          color = Colors.grey;
+          bgColor = Colors.grey.shade100;
+          break;
+      }
     }
 
-    // 关键调整 5: 确保文件图标容器具有明确的尺寸，并且不影响外部 Stack 的布局。
+    // 确保文件图标容器具有明确的尺寸
     return Container(
       width: containerSize,
       height: containerSize,

@@ -211,8 +211,8 @@ class _FileManagerPageState extends State<FilesPage> {
                           crossAxisCount: 3,
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
-                          // 调整比例以适应固定的图标高度 (80 + 文本行高)
-                          childAspectRatio: 0.75,
+                          // 恢复到 0.70，因为文件名现在只占一行。
+                          childAspectRatio: 0.70,
                         ),
                         itemBuilder: (context, index) {
                           return _buildGridItem(index);
@@ -353,7 +353,7 @@ class _FileManagerPageState extends State<FilesPage> {
     );
   }
 
-  // --- Grid View Item (关键调整：移除 Expanded，固定图标区域高度) ---
+  // --- Grid View Item ---
   Widget _buildGridItem(int index) {
     final item = _files[index];
     final isSelected = _selectedIndices.contains(index);
@@ -396,11 +396,10 @@ class _FileManagerPageState extends State<FilesPage> {
           children: [
             // 1. Icon/Thumbnail Area (固定高度的 Stack)
             SizedBox(
-              // 关键调整 1: 固定 Stack 的总高度，为图标和顶部按钮提供足够的空间
+              // 固定 Stack 的总高度
               height: 80,
               width: double.infinity,
               child: Stack(
-                // 关键调整 2: 将主要图标向下对齐，为顶部的“更多”按钮留出空间。
                 alignment: Alignment.bottomCenter,
                 children: [
                   // 主要文件图标容器
@@ -408,8 +407,8 @@ class _FileManagerPageState extends State<FilesPage> {
 
                   // Top-right More/Selection button
                   Positioned(
-                    top: 0, // 贴近顶部
-                    right: 0, // 贴近右侧
+                    top: 0,
+                    right: 0,
                     child: _buildTrailingWidget(isSelected, index, isGrid: true),
                   ),
                 ],
@@ -417,10 +416,10 @@ class _FileManagerPageState extends State<FilesPage> {
             ),
 
             // 2. File Name
-            // 关键调整 3: 确保文件名可以占据足够的空间，但最多不超过 2 行。
             Text(
               item.name,
-              maxLines: 2,
+              // 关键修改：将最大行数限制为 1，确保文件名不会溢出
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.2),
             ),
@@ -488,7 +487,7 @@ class _FileManagerPageState extends State<FilesPage> {
 
   // Return icon based on file type
   Widget _getFileIcon(FileItem item, {required bool isGrid}) {
-    // 关键调整 4: 保持图标/容器尺寸一致
+    // 保持图标/容器尺寸一致
     double size = isGrid ? 36 : 32;
     double containerSize = isGrid ? 50 : 48;
 
@@ -530,7 +529,7 @@ class _FileManagerPageState extends State<FilesPage> {
       }
     }
 
-    // 关键调整 5: 确保文件图标容器具有明确的尺寸
+    // 确保文件图标容器具有明确的尺寸
     return Container(
       width: containerSize,
       height: containerSize,

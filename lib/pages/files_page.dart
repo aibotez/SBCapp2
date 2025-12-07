@@ -8,63 +8,83 @@ class FilesPage extends StatefulWidget {
 }
 
 class _FileManagerPageState extends State<FilesPage> {
-  int _selectedIndex = 1; // 默认选中"文件"
+  // --- View Mode State ---
+  bool _isGridView = true;
 
-  // --- 多选模式状态 ---
+  // --- Selection Mode State ---
   bool _isSelectionMode = false;
   final Set<int> _selectedIndices = {};
 
-  // 模拟文件数据
+  // Mock file data
   final List<FileItem> _files = [
-    FileItem(name: "新建", date: "昨天 13:41", isFolder: true),
+    FileItem(name: "新建文件夹", date: "昨天 13:41", isFolder: true),
     FileItem(name: "doc_1761822872509.pdf", date: "2025/11/29 20:49", size: "239.38 KB", fileType: FileType.pdf),
     FileItem(name: "Screenshot_20251129_204901_com.trim.app.jpg", date: "2025/11/29 20:49", size: "315.74 KB", fileType: FileType.image),
+    FileItem(name: "Video_Clip_2025.mp4", date: "2025/11/28 10:00", size: "12.5 MB", fileType: FileType.video),
+    FileItem(name: "Work.docx", date: "2025/11/27 09:30", size: "450 KB", fileType: FileType.other),
+    FileItem(name: "A_very_long_file_name_that_spans_multiple_lines.txt", date: "2025/11/26 09:00", size: "10 KB", fileType: FileType.other),
   ];
 
-  // --- 逻辑方法 ---
+  // --- Logic Methods ---
 
-  // 切换到底部导航栏某一项
-  void _onItemTapped(int index) {
-    if (_isSelectionMode) return; // 选择模式下禁止切换 tab
-    setState(() {
-      _selectedIndex = index;
-    });
+  // Toggle list view mode (List/Grid)
+  void _toggleViewMode() {
+    if (!_isSelectionMode) {
+      setState(() {
+        _isGridView = !_isGridView;
+      });
+    }
   }
 
-  // 进入/退出选择模式
+  // Enter/Exit selection mode
   void _toggleSelectionMode() {
     setState(() {
       _isSelectionMode = !_isSelectionMode;
-      _selectedIndices.clear(); // 退出或进入时清空选择
+      _selectedIndices.clear(); // Clear selection when exiting
     });
   }
 
-  // 切换单个文件的选中状态
+  // Toggle single file selection status
   void _toggleItemSelection(int index) {
     setState(() {
-      if (_selectedIndices.contains(index)) {
-        _selectedIndices.remove(index);
-      } else {
-        _selectedIndices.add(index);
+      if (_isSelectionMode) {
+        if (_selectedIndices.contains(index)) {
+          _selectedIndices.remove(index);
+
+          if (_selectedIndices.isEmpty) {
+            _isSelectionMode = false;
+          }
+        } else {
+          _selectedIndices.add(index);
+        }
       }
     });
   }
 
-  // 全选/取消全选
+  // Handle file tap in non-selection mode
+  void _onFileItemTap(FileItem item) {
+    print("Executing action: Open/View details for ${item.name}");
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text("打开文件: ${item.name}"), duration: const Duration(milliseconds: 800)),
+    );
+  }
+
+  // Select all/Deselect all
   void _toggleSelectAll() {
     setState(() {
       if (_selectedIndices.length == _files.length) {
         _selectedIndices.clear();
+        _isSelectionMode = false;
       } else {
-        // 全选所有索引
         _selectedIndices.addAll(List.generate(_files.length, (index) => index));
+        _isSelectionMode = true;
       }
     });
   }
 
   @override
   Widget build(BuildContext context) {
-    // 动态构建 AppBar
+    // Dynamically build AppBar
     PreferredSizeWidget buildAppBar() {
       if (_isSelectionMode) {
         return AppBar(
@@ -113,7 +133,7 @@ class _FileManagerPageState extends State<FilesPage> {
       appBar: buildAppBar(),
       body: Column(
         children: [
-          // 1. 搜索框区域
+          // 1. Search Bar Area
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
             child: Container(
@@ -134,7 +154,7 @@ class _FileManagerPageState extends State<FilesPage> {
             ),
           ),
 
-          // 2. 列表区域
+          // 2. List Area
           Expanded(
             child: Container(
               decoration: const BoxDecoration(
@@ -146,7 +166,7 @@ class _FileManagerPageState extends State<FilesPage> {
               ),
               child: Column(
                 children: [
-                  // 2.1 筛选/排序头
+                  // 2.1 Filter/Sort Header
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
                     child: Row(
@@ -158,11 +178,17 @@ class _FileManagerPageState extends State<FilesPage> {
                         const SizedBox(width: 4),
                         const Icon(Icons.arrow_upward, size: 16, color: Colors.grey),
                         const Spacer(),
-                        const Icon(Icons.grid_view, color: Colors.black54),
-                        const SizedBox(width: 16),
-                        // 点击这个图标进入多选模式
+                        // View Toggle Icon
                         InkWell(
-                          // 修改此处：移除 null 判断，允许点击切换回正常模式
+                          onTap: _toggleViewMode,
+                          child: Icon(
+                            _isGridView ? Icons.list : Icons.grid_view,
+                            color: Colors.black54,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        // Selection Mode Toggle Icon
+                        InkWell(
                           onTap: _toggleSelectionMode,
                           child: Icon(
                             _isSelectionMode ? Icons.check_box : Icons.check_box_outlined,
@@ -173,14 +199,32 @@ class _FileManagerPageState extends State<FilesPage> {
                     ),
                   ),
 
-                  // 2.2 文件列表
+                  // 2.2 File List/Grid Rendering
                   Expanded(
-                    child: ListView.builder(
-                      padding: const EdgeInsets.only(top: 0),
-                      itemCount: _files.length,
-                      itemBuilder: (context, index) {
-                        return _buildFileItem(index);
-                      },
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: _isGridView ? 10.0 : 0.0),
+                      child: _isGridView
+                          ? GridView.builder(
+                        padding: const EdgeInsets.all(10),
+                        itemCount: _files.length,
+                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 3,
+                          crossAxisSpacing: 10,
+                          mainAxisSpacing: 10,
+                          // 调整比例以适应固定的图标高度 (80 + 文本行高)
+                          childAspectRatio: 0.75,
+                        ),
+                        itemBuilder: (context, index) {
+                          return _buildGridItem(index);
+                        },
+                      )
+                          : ListView.builder(
+                        padding: const EdgeInsets.only(top: 0),
+                        itemCount: _files.length,
+                        itemBuilder: (context, index) {
+                          return _buildFileItem(index);
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -189,36 +233,15 @@ class _FileManagerPageState extends State<FilesPage> {
           ),
         ],
       ),
-      // 根据模式切换底部栏
+      // bottomNavigationBar 是 Scaffold 的顶级属性
       bottomNavigationBar: _isSelectionMode ? _buildSelectionBottomBar() : null,
     );
   }
 
-  // --- 正常模式的底部导航 ---
-  Widget _buildNormalBottomBar() {
-    return BottomNavigationBar(
-      type: BottomNavigationBarType.fixed,
-      currentIndex: _selectedIndex,
-      onTap: _onItemTapped,
-      selectedItemColor: Colors.black,
-      unselectedItemColor: Colors.grey,
-      showUnselectedLabels: true,
-      selectedFontSize: 12,
-      unselectedFontSize: 12,
-      items: const [
-        BottomNavigationBarItem(icon: Icon(Icons.home_outlined), label: 'FN'),
-        BottomNavigationBarItem(icon: Icon(Icons.folder), label: '文件'),
-        BottomNavigationBarItem(icon: Icon(Icons.cloud_download_outlined), label: '下载'),
-        BottomNavigationBarItem(icon: Icon(Icons.movie_outlined), label: '影视'),
-        BottomNavigationBarItem(icon: Icon(Icons.photo_outlined), label: '相册'),
-      ],
-    );
-  }
-
-  // --- 多选模式的操作栏 ---
+  // --- Selection Mode Bottom Bar ---
   Widget _buildSelectionBottomBar() {
     return Container(
-      height: 80, // 比普通导航栏稍高
+      height: 80,
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
@@ -237,7 +260,7 @@ class _FileManagerPageState extends State<FilesPage> {
           _buildActionItem(Icons.delete_outline, "删除"),
           _buildActionItem(Icons.drive_file_move_outline, "移动"),
           _buildActionItem(Icons.copy_outlined, "复制"),
-          _buildActionItem(Icons.folder_zip_outlined, "压缩"), // 假设最后被截断的是压缩
+          _buildActionItem(Icons.folder_zip_outlined, "压缩"),
         ],
       ),
     );
@@ -245,7 +268,7 @@ class _FileManagerPageState extends State<FilesPage> {
 
   Widget _buildActionItem(IconData icon, String label) {
     return InkWell(
-      onTap: () {}, // 点击操作逻辑
+      onTap: () {},
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -257,7 +280,7 @@ class _FileManagerPageState extends State<FilesPage> {
     );
   }
 
-  // --- 构建文件列表项 ---
+  // --- List View Item ---
   Widget _buildFileItem(int index) {
     final item = _files[index];
     final isSelected = _selectedIndices.contains(index);
@@ -267,26 +290,33 @@ class _FileManagerPageState extends State<FilesPage> {
         if (_isSelectionMode) {
           _toggleItemSelection(index);
         } else {
-          // 正常点击逻辑，比如打开文件
-          print("Opening ${item.name}");
+          _onFileItemTap(item);
+        }
+      },
+      onLongPress: () {
+        if (!_isSelectionMode) {
+          setState(() {
+            _isSelectionMode = true;
+            _selectedIndices.add(index);
+          });
         }
       },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            // 图标
+            // Icon
             Container(
               width: 48,
               height: 48,
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: _getFileIcon(item),
+              child: _getFileIcon(item, isGrid: false),
             ),
             const SizedBox(width: 16),
 
-            // 信息区域
+            // Info Area
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -305,7 +335,7 @@ class _FileManagerPageState extends State<FilesPage> {
                   Row(
                     children: [
                       Text(item.date, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-                      if (item.size != null) ...[
+                      if (item.size != null && !item.isFolder) ...[
                         const SizedBox(width: 8),
                         Text(item.size!, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                       ],
@@ -315,27 +345,101 @@ class _FileManagerPageState extends State<FilesPage> {
               ),
             ),
 
-            // 根据模式显示不同尾部组件
-            if (_isSelectionMode)
-              Container(
-                width: 24,
-                height: 24,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected ? Colors.blue : Colors.transparent,
-                  border: Border.all(
-                    color: isSelected ? Colors.blue : Colors.grey.shade400,
-                    width: 1.5,
+            // Trailing Widget (Selection/More)
+            _buildTrailingWidget(isSelected, index),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // --- Grid View Item (关键调整：移除 Expanded，固定图标区域高度) ---
+  Widget _buildGridItem(int index) {
+    final item = _files[index];
+    final isSelected = _selectedIndices.contains(index);
+
+    return InkWell(
+      onTap: () {
+        if (_isSelectionMode) {
+          _toggleItemSelection(index);
+        } else {
+          _onFileItemTap(item);
+        }
+      },
+      onLongPress: () {
+        if (!_isSelectionMode) {
+          setState(() {
+            _isSelectionMode = true;
+            _selectedIndices.add(index);
+          });
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            // Add blue border when selected
+            border: isSelected && _isSelectionMode
+                ? Border.all(color: Colors.blue, width: 2)
+                : Border.all(color: Colors.grey.shade200, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 2),
+              ),
+            ]
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // 1. Icon/Thumbnail Area (固定高度的 Stack)
+            SizedBox(
+              // 关键调整 1: 固定 Stack 的总高度，为图标和顶部按钮提供足够的空间
+              height: 80,
+              width: double.infinity,
+              child: Stack(
+                // 关键调整 2: 将主要图标向下对齐，为顶部的“更多”按钮留出空间。
+                alignment: Alignment.bottomCenter,
+                children: [
+                  // 主要文件图标容器
+                  _getFileIcon(item, isGrid: true),
+
+                  // Top-right More/Selection button
+                  Positioned(
+                    top: 0, // 贴近顶部
+                    right: 0, // 贴近右侧
+                    child: _buildTrailingWidget(isSelected, index, isGrid: true),
                   ),
-                ),
-                child: isSelected
-                    ? const Icon(Icons.check, size: 16, color: Colors.white)
-                    : null,
-              )
-            else
-              IconButton(
-                icon: Icon(Icons.more_horiz, color: Colors.grey[400]),
-                onPressed: () {},
+                ],
+              ),
+            ),
+
+            // 2. File Name
+            // 关键调整 3: 确保文件名可以占据足够的空间，但最多不超过 2 行。
+            Text(
+              item.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.2),
+            ),
+
+            const SizedBox(height: 2),
+
+            // 3. Date/Size info
+            Text(
+              item.date,
+              style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+            if (item.size != null && !item.isFolder)
+              Text(
+                item.size!,
+                style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
           ],
         ),
@@ -343,36 +447,105 @@ class _FileManagerPageState extends State<FilesPage> {
     );
   }
 
-  Widget _getFileIcon(FileItem item) {
+  // Trailing Widget: Show selection box or more button based on mode
+  Widget _buildTrailingWidget(bool isSelected, int index, {bool isGrid = false}) {
+    if (_isSelectionMode) {
+      // Selection Mode: Always show selection status
+      return Container(
+        width: 20,
+        height: 20,
+        margin: EdgeInsets.zero,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: isSelected ? Colors.blue : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? Colors.blue : Colors.grey.shade400,
+            width: 1.5,
+          ),
+        ),
+        child: isSelected
+            ? const Icon(Icons.check, size: 12, color: Colors.white)
+            : null,
+      );
+    } else {
+      // Non-Selection Mode: Show More action icon
+      return SizedBox(
+        width: 32, // 限制宽度
+        height: 32, // 限制高度
+        child: IconButton(
+          icon: Icon(
+            Icons.more_horiz,
+            color: Colors.grey[400],
+            size: isGrid ? 20 : 24,
+          ),
+          onPressed: () {},
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(), // 移除默认的最小约束
+        ),
+      );
+    }
+  }
+
+  // Return icon based on file type
+  Widget _getFileIcon(FileItem item, {required bool isGrid}) {
+    // 关键调整 4: 保持图标/容器尺寸一致
+    double size = isGrid ? 36 : 32;
+    double containerSize = isGrid ? 50 : 48;
+
+
+    // File type icon
+    IconData iconData;
+    Color color;
+    Color bgColor;
+
     if (item.isFolder) {
-      return const Icon(Icons.folder, size: 48, color: Color(0xFF42A5F5));
+      // Folder icon
+      iconData = Icons.folder;
+      color = Colors.blue;
+      bgColor = Colors.blue.shade50;
     }
-    switch (item.fileType) {
-      case FileType.pdf:
-        return Container(
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-              color: Colors.red[50],
-              borderRadius: BorderRadius.circular(8)
-          ),
-          child: const Icon(Icons.picture_as_pdf, size: 32, color: Colors.redAccent),
-        );
-      case FileType.image:
-        return Container(
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-              color: Colors.purple[50],
-              borderRadius: BorderRadius.circular(8)
-          ),
-          child: const Icon(Icons.image, size: 32, color: Colors.purpleAccent),
-        );
-      default:
-        return const Icon(Icons.insert_drive_file, size: 48, color: Colors.grey);
+    else{
+      switch (item.fileType) {
+        case FileType.pdf:
+          iconData = Icons.picture_as_pdf;
+          color = Colors.redAccent;
+          bgColor = Colors.red.shade50;
+          break;
+        case FileType.image:
+          iconData = Icons.image;
+          color = Colors.purpleAccent;
+          bgColor = Colors.purple.shade50;
+          break;
+        case FileType.video:
+          iconData = Icons.movie;
+          color = Colors.green;
+          bgColor = Colors.green.shade50;
+          break;
+        case FileType.other:
+        default: // Fallback for safety
+          iconData = Icons.insert_drive_file;
+          color = Colors.grey;
+          bgColor = Colors.grey.shade100;
+          break;
+      }
     }
+
+    // 关键调整 5: 确保文件图标容器具有明确的尺寸
+    return Container(
+      width: containerSize,
+      height: containerSize,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(8)
+      ),
+      child: Icon(iconData, size: size, color: color),
+    );
   }
 }
 
-enum FileType { other, pdf, image }
+// --- Data Models ---
+enum FileType { other, pdf, image, video }
 
 class FileItem {
   final String name;

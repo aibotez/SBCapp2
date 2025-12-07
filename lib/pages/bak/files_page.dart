@@ -211,7 +211,7 @@ class _FileManagerPageState extends State<FilesPage> {
                           crossAxisCount: 3,
                           crossAxisSpacing: 10,
                           mainAxisSpacing: 10,
-                          // 恢复到 0.70，因为文件名现在只占一行。
+                          // 保持比例不变
                           childAspectRatio: 0.70,
                         ),
                         itemBuilder: (context, index) {
@@ -375,7 +375,8 @@ class _FileManagerPageState extends State<FilesPage> {
         }
       },
       child: Container(
-        padding: const EdgeInsets.all(8),
+        // 移除卡片内边距，使内容更靠近边缘
+        padding: const EdgeInsets.all(0),
         decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
@@ -392,36 +393,57 @@ class _FileManagerPageState extends State<FilesPage> {
             ]
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          // 文本居中显示
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // 1. Icon/Thumbnail Area (固定高度的 Stack)
-            SizedBox(
-              // 固定 Stack 的总高度
-              height: 80,
-              width: double.infinity,
-              child: Stack(
-                alignment: Alignment.bottomCenter,
-                children: [
-                  // 主要文件图标容器
-                  _getFileIcon(item, isGrid: true),
-
-                  // Top-right More/Selection button
-                  Positioned(
-                    top: 0,
-                    right: 0,
-                    child: _buildTrailingWidget(isSelected, index, isGrid: true),
-                  ),
-                ],
-              ),
+            Container(
+              // height: 20,
+              padding: const EdgeInsets.symmetric(horizontal: 4.0,vertical: 4.0),
+              alignment: Alignment.topRight,
+              child: _buildTrailingWidget(isSelected, index, isGrid: true),
             ),
+            Container(
+              child: _getFileIcon(item, isGrid: true),
+            ),
+            // 1. Icon/Thumbnail Area (固定高度的 Stack)
+            // SizedBox(
+            //   // 固定 Stack 的总高度，需要增加一些高度来容纳更大的图标和留出顶部空间
+            //   height: 100,
+            //   width: double.infinity,
+            //   child: Stack(
+            //     // 使用 Alignment.centerLeft 或 centerRight 来防止图标溢出
+            //     alignment: Alignment.center,
+            //     children: [
+            //       // 主要文件图标容器
+            //       // 将图标向下移动，避免与右上角的三个点重叠
+            //       Positioned(
+            //         bottom: 0,
+            //         child: _getFileIcon(item, isGrid: true),
+            //       ),
+            //
+            //       // Top-right More/Selection button
+            //       // 关键修改：将 top 从 0 调整为 4， right 从 0 调整为 4，并移除边距
+            //       Positioned(
+            //         top: 4, // 向上贴近顶部
+            //         right: 4, // 向右贴近右边
+            //         child: _buildTrailingWidget(isSelected, index, isGrid: true),
+            //       ),
+            //     ],
+            //   ),
+            // ),
+            const SizedBox(height: 10),
 
-            // 2. File Name
-            Text(
-              item.name,
-              // 关键修改：将最大行数限制为 1，确保文件名不会溢出
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1.2),
+            // 2. File Name (添加水平内边距以避免文本紧贴边缘)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Text(
+                item.name,
+                // 关键修改：将最大行数限制为 1，确保文件名不会溢出
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center, // 确保文本自身居中
+                style: const TextStyle(fontSize: 13, color: Colors.black87, height: 1),
+              ),
             ),
 
             const SizedBox(height: 2),
@@ -429,6 +451,7 @@ class _FileManagerPageState extends State<FilesPage> {
             // 3. Date/Size info
             Text(
               item.date,
+              textAlign: TextAlign.center, // 确保文本自身居中
               style: TextStyle(fontSize: 10, color: Colors.grey[500]),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -436,6 +459,7 @@ class _FileManagerPageState extends State<FilesPage> {
             if (item.size != null && !item.isFolder)
               Text(
                 item.size!,
+                textAlign: TextAlign.center, // 确保文本自身居中
                 style: TextStyle(fontSize: 10, color: Colors.grey[500]),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -453,7 +477,9 @@ class _FileManagerPageState extends State<FilesPage> {
       return Container(
         width: 20,
         height: 20,
+        // 关键修改：移除所有可能存在的外部或内部边距，使其紧贴 Positioned 的 top/right
         margin: EdgeInsets.zero,
+        padding: EdgeInsets.zero,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isSelected ? Colors.blue : Colors.transparent,
@@ -468,17 +494,22 @@ class _FileManagerPageState extends State<FilesPage> {
       );
     } else {
       // Non-Selection Mode: Show More action icon
-      return SizedBox(
-        width: 32, // 限制宽度
-        height: 32, // 限制高度
+      return Container(
+        // 关键修改：使用 Container 包装 IconButton 并给它设置背景色和圆角，使其看起来像一个按钮
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        width: 24, // 减小宽度，使其更精致
+        height: 24, // 减小高度
         child: IconButton(
           icon: Icon(
             Icons.more_horiz,
-            color: Colors.grey[400],
-            size: isGrid ? 20 : 24,
+            color: Colors.grey[600],
+            size: 16, // 减小图标大小
           ),
           onPressed: () {},
-          padding: EdgeInsets.zero,
+          padding: EdgeInsets.zero, // 移除内边距
           constraints: const BoxConstraints(), // 移除默认的最小约束
         ),
       );
@@ -488,8 +519,9 @@ class _FileManagerPageState extends State<FilesPage> {
   // Return icon based on file type
   Widget _getFileIcon(FileItem item, {required bool isGrid}) {
     // 保持图标/容器尺寸一致
-    double size = isGrid ? 36 : 32;
-    double containerSize = isGrid ? 50 : 48;
+    // 网格视图下，图标尺寸增大
+    double size = isGrid ? 56 : 32;
+    double containerSize = isGrid ? 70 : 48;
 
 
     // File type icon

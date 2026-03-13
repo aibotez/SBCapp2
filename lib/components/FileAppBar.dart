@@ -1,25 +1,46 @@
 import 'package:flutter/material.dart';
 
-class FileAppBar extends StatelessWidget {
+class FileAppBar extends StatelessWidget implements PreferredSizeWidget {
 
   final bool isSelectionMode;
   final String title;
+  final bool showBack;
 
   const FileAppBar({
     super.key,
     required this.isSelectionMode,
     required this.title,
+    required this.showBack,
   });
 
   @override
   Widget build(BuildContext context) {
     if (isSelectionMode){
 
+    }else{
+      return AppBar(
+          leading: showBack ? IconButton(
+              icon: const Icon(Icons.arrow_back),
+              onPressed: () => Navigator.pop(context)
+          ) : null,
+
+
+        title: Text(title),
+
+        centerTitle: false,
+
+      );
+
     }
 
 
     return const Placeholder();
   }
+
+
+  /// 必须实现这个属性
+  @override
+  Size get preferredSize => const Size.fromHeight(kToolbarHeight);
 }
 
 

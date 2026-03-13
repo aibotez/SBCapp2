@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 
+import '../models/file_node.dart';
 
 
 class FileItemWidget extends StatelessWidget {

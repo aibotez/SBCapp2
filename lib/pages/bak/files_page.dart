@@ -1,7 +1,20 @@
 import 'package:flutter/material.dart';
+import '../models/file_node.dart';
+import '../services/file_service.dart';
 
 class FilesPage extends StatefulWidget {
-  const FilesPage({super.key});
+  final int? ID;
+  final String title;
+  final int? parent_id;
+
+
+
+  const FilesPage({
+    super.key,
+    this.ID,
+    this.parent_id,
+    this.title = "文件",
+  });
 
   @override
   State<FilesPage> createState() => _FileManagerPageState();
@@ -9,23 +22,35 @@ class FilesPage extends StatefulWidget {
 
 class _FileManagerPageState extends State<FilesPage> {
   // --- View Mode State ---
-  bool _isGridView = true;
-
+  bool _isGridView = false;
   // --- Selection Mode State ---
   bool _isSelectionMode = false;
   final Set<int> _selectedIndices = {};
 
-  // Mock file data
-  final List<FileItem> _files = [
-    FileItem(name: "新建文件夹", date: "昨天 13:41", isFolder: true),
-    FileItem(name: "doc_1761822872509.pdf", date: "2025/11/29 20:49", size: "239.38 KB", fileType: FileType.pdf),
-    FileItem(name: "Screenshot_20251129_204901_com.trim.app.jpg", date: "2025/11/29 20:49", size: "315.74 KB", fileType: FileType.image),
-    FileItem(name: "Video_Clip_2025.mp4", date: "2025/11/28 10:00", size: "12.5 MB", fileType: FileType.video),
-    FileItem(name: "Work.docx", date: "2025/11/27 09:30", size: "450 KB", fileType: FileType.other),
-    FileItem(name: "A_very_long_file_name_that_spans_multiple_lines.txt", date: "2025/11/26 09:00", size: "10 KB", fileType: FileType.other),
-  ];
+  List<FileNode> _files = [];
+  bool _loading = true;
 
   // --- Logic Methods ---
+
+  void initState() {
+    super.initState();
+    _loadFiles();
+  }
+
+  Future<void> _loadFiles() async {
+
+    try {
+
+      final files = await FileService.listFiles(ID: widget.ID,);
+
+      setState(() {
+        _files = files;
+        _loading = false;
+      });
+    } catch (e) {
+      print(e);
+    }
+  }
 
   // Toggle list view mode (List/Grid)
   void _toggleViewMode() {
@@ -62,12 +87,51 @@ class _FileManagerPageState extends State<FilesPage> {
   }
 
   // Handle file tap in non-selection mode
-  void _onFileItemTap(FileItem item) {
-    print("Executing action: Open/View details for ${item.name}");
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text("打开文件: ${item.name}"), duration: const Duration(milliseconds: 800)),
+  // void _onFileItemTap(FileItem item) {
+  //   print("Executing action: Open/View details for ${item.name}");
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(content: Text("打开文件: ${item.name}"), duration: const Duration(milliseconds: 800)),
+  //   );
+  // }
+
+
+  void _backTap(){
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => FilesPage(
+          ID: widget.parent_id,
+        ),
+      ),
     );
+
   }
+
+  void _onFileItemTap(FileNode item) {
+
+
+    if (item.isDir) {
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => FilesPage(
+            ID: item.id,
+            title: item.name,
+            parent_id: item.parent_id,
+          ),
+        ),
+      );
+
+    } else {
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("打开文件: ${item.name}")),
+      );
+
+    }
+  }
+
 
   // Select all/Deselect all
   void _toggleSelectAll() {
@@ -112,10 +176,16 @@ class _FileManagerPageState extends State<FilesPage> {
         return AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
-            onPressed: () {},
+            onPressed: () {
+              // back_tri=1;
+              Navigator.pop(context);
+              // _backTap();
+
+
+              },
           ),
-          title: const Text(
-            "测试",
+          title: Text(
+            widget.title,
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
           centerTitle: false,
@@ -156,14 +226,9 @@ class _FileManagerPageState extends State<FilesPage> {
 
           // 2. List Area
           Expanded(
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
-              ),
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                :Container(decoration: const BoxDecoration(color: Colors.white, borderRadius: BorderRadius.only(topLeft: Radius.circular(24), topRight: Radius.circular(24),),),
               child: Column(
                 children: [
                   // 2.1 Filter/Sort Header
@@ -283,6 +348,7 @@ class _FileManagerPageState extends State<FilesPage> {
   // --- List View Item ---
   Widget _buildFileItem(int index) {
     final item = _files[index];
+
     final isSelected = _selectedIndices.contains(index);
 
     return InkWell(
@@ -335,7 +401,7 @@ class _FileManagerPageState extends State<FilesPage> {
                   Row(
                     children: [
                       Text(item.date, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-                      if (item.size != null && !item.isFolder) ...[
+                      if (item.size != null && !item.isDir) ...[
                         const SizedBox(width: 8),
                         Text(item.size!, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
                       ],
@@ -405,32 +471,7 @@ class _FileManagerPageState extends State<FilesPage> {
             Container(
               child: _getFileIcon(item, isGrid: true),
             ),
-            // 1. Icon/Thumbnail Area (固定高度的 Stack)
-            // SizedBox(
-            //   // 固定 Stack 的总高度，需要增加一些高度来容纳更大的图标和留出顶部空间
-            //   height: 100,
-            //   width: double.infinity,
-            //   child: Stack(
-            //     // 使用 Alignment.centerLeft 或 centerRight 来防止图标溢出
-            //     alignment: Alignment.center,
-            //     children: [
-            //       // 主要文件图标容器
-            //       // 将图标向下移动，避免与右上角的三个点重叠
-            //       Positioned(
-            //         bottom: 0,
-            //         child: _getFileIcon(item, isGrid: true),
-            //       ),
-            //
-            //       // Top-right More/Selection button
-            //       // 关键修改：将 top 从 0 调整为 4， right 从 0 调整为 4，并移除边距
-            //       Positioned(
-            //         top: 4, // 向上贴近顶部
-            //         right: 4, // 向右贴近右边
-            //         child: _buildTrailingWidget(isSelected, index, isGrid: true),
-            //       ),
-            //     ],
-            //   ),
-            // ),
+
             const SizedBox(height: 10),
 
             // 2. File Name (添加水平内边距以避免文本紧贴边缘)
@@ -456,7 +497,7 @@ class _FileManagerPageState extends State<FilesPage> {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            if (item.size != null && !item.isFolder)
+            if (item.size != null && !item.isDir)
               Text(
                 item.size!,
                 textAlign: TextAlign.center, // 确保文本自身居中
@@ -517,7 +558,7 @@ class _FileManagerPageState extends State<FilesPage> {
   }
 
   // Return icon based on file type
-  Widget _getFileIcon(FileItem item, {required bool isGrid}) {
+  Widget _getFileIcon(FileNode item, {required bool isGrid}) {
     // 保持图标/容器尺寸一致
     // 网格视图下，图标尺寸增大
     double size = isGrid ? 56 : 32;
@@ -529,7 +570,7 @@ class _FileManagerPageState extends State<FilesPage> {
     Color color;
     Color bgColor;
 
-    if (item.isFolder) {
+    if (item.isDir) {
       // Folder icon
       iconData = Icons.folder;
       color = Colors.blue;
